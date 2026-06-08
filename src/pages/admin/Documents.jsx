@@ -137,8 +137,8 @@ export default function AdminDocuments() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>Documents ({filtered.length})</h3>
               <span style={{ fontSize:'12px', color:'#16a34a', fontWeight:600 }}>🟢 Live</span>
             </div>
@@ -194,13 +194,13 @@ export default function AdminDocuments() {
 
       {/* Review Modal */}
       {selected && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
           <div className="modal-box" style={{ maxWidth:'520px' }}>
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Review Document</h3>
               <button onClick={()=>setSelected(null)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body-admin">
               <div style={{ background:'var(--primary-pale)', borderRadius:'8px', padding:'12px 16px', marginBottom:'16px' }}>
                 <div style={{ fontWeight:700, fontSize:'14px' }}>{selected.profiles?.full_name}</div>
                 <div style={{ fontSize:'12px', color:'#888' }}>{selected.profiles?.email}</div>
@@ -230,7 +230,7 @@ export default function AdminDocuments() {
                   disabled={selected.status !== 'pending'} />
               </div>
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer-admin">
               <button onClick={()=>setSelected(null)} className="btn btn-secondary">Close</button>
               {selected.status === 'pending' && (
                 <>

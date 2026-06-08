@@ -134,8 +134,8 @@ export default function AdminLoans() {
             ))}
           </div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>Applications ({filtered.length})</h3>
               <div className="search-box" style={{ width:'240px' }}>
                 <span className="search-icon">🔍</span>
@@ -176,13 +176,13 @@ export default function AdminLoans() {
 
       {/* Review Modal */}
       {selected && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
           <div className="modal-box" style={{ maxWidth:'560px' }}>
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Review Application — {selected.app_id}</h3>
               <button onClick={()=>setSelected(null)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body-admin">
               <div style={{ background:'var(--primary-pale)', borderRadius:'8px', padding:'14px', marginBottom:'16px' }}>
                 <div style={{ fontWeight:700, fontSize:'15px', marginBottom:'4px' }}>{selected.profiles?.full_name}</div>
                 <div style={{ fontSize:'12px', color:'#888' }}>{selected.profiles?.email} · {selected.profiles?.phone}</div>
@@ -208,14 +208,14 @@ export default function AdminLoans() {
               </div>
             </div>
             {selected.status === 'pending' && (
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button onClick={()=>setSelected(null)} className="btn btn-secondary">Cancel</button>
                 <button onClick={handleReject} disabled={actionLoading} className="btn btn-danger">❌ Reject</button>
                 <button onClick={handleApprove} disabled={actionLoading} className="btn btn-success">✅ Approve</button>
               </div>
             )}
             {selected.status !== 'pending' && (
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button onClick={()=>setSelected(null)} className="btn btn-secondary">Close</button>
               </div>
             )}

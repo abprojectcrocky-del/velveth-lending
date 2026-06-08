@@ -8,39 +8,27 @@ import { useNavigate } from 'react-router-dom'
 export default function CustomerProfile() {
   const { profile, fetchProfile, signOut } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm]     = useState({ full_name:'', phone:'', address:'' })
-  const [loading, setLoading] = useState(false)
-  const [pwForm, setPwForm]   = useState({ current:'', newPw:'', confirm:'' })
+  const [form,      setForm]      = useState({ full_name:'', phone:'', address:'' })
+  const [loading,   setLoading]   = useState(false)
+  const [pwForm,    setPwForm]    = useState({ newPw:'', confirm:'' })
   const [pwLoading, setPwLoading] = useState(false)
-  const [avatarFile, setAvatarFile] = useState(null)
-  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [section,   setSection]   = useState(null) // 'edit' | 'password' | null
 
   useEffect(() => {
-    if (profile) setForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '', address: profile.address ?? '' })
+    if (profile) setForm({ full_name:profile.full_name??'', phone:profile.phone??'', address:profile.address??'' })
   }, [profile])
 
-  async function handleSave(e) {
-    e.preventDefault()
+  async function handleSave() {
     setLoading(true)
-    try {
-      let avatar_url = profile.avatar_url
-      if (avatarFile) {
-        const path = `avatars/${profile.id}/${Date.now()}.${avatarFile.name.split('.').pop()}`
-        const { error: uploadErr } = await supabase.storage.from('documents').upload(path, avatarFile, { upsert: true })
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
-          avatar_url = urlData.publicUrl
-        }
-      }
-      const { error } = await supabase.from('profiles').update({ full_name: form.full_name, phone: form.phone, address: form.address, avatar_url, updated_at: new Date().toISOString() }).eq('id', profile.id)
-      if (error) { toast.error('Failed to update profile'); return }
-      await fetchProfile(profile.id)
-      toast.success('Profile updated!')
-    } finally { setLoading(false) }
+    const { error } = await supabase.from('profiles').update({ full_name:form.full_name, phone:form.phone, address:form.address, updated_at:new Date().toISOString() }).eq('id',profile.id)
+    if (error) { toast.error('Update failed'); setLoading(false); return }
+    await fetchProfile(profile.id)
+    toast.success('Profile updated!')
+    setLoading(false)
+    setSection(null)
   }
 
-  async function handlePasswordChange(e) {
-    e.preventDefault()
+  async function handlePasswordChange() {
     if (pwForm.newPw.length < 9) { toast.error('Password must be at least 9 characters'); return }
     if (pwForm.newPw !== pwForm.confirm) { toast.error('Passwords do not match'); return }
     setPwLoading(true)
@@ -48,7 +36,8 @@ export default function CustomerProfile() {
     setPwLoading(false)
     if (error) { toast.error(error.message); return }
     toast.success('Password updated!')
-    setPwForm({ current:'', newPw:'', confirm:'' })
+    setPwForm({ newPw:'', confirm:'' })
+    setSection(null)
   }
 
   async function handleLogout() {
@@ -56,90 +45,99 @@ export default function CustomerProfile() {
     navigate('/login')
   }
 
-  const inputStyle = { width:'100%', padding:'11px 14px', border:'1.5px solid #e0e0e0', borderRadius:'8px', fontSize:'14px', color:'#2d1018', background:'white' }
-  const labelStyle = { display:'block', fontSize:'12px', fontWeight:600, color:'#666', marginBottom:'6px', textTransform:'uppercase' }
   const initials = profile?.full_name?.substring(0,2).toUpperCase() ?? 'VL'
 
+  const inp = { width:'100%', padding:'13px 14px', background:'#f2f2f7', border:'none', borderRadius:'10px', fontSize:'15px', color:'#2d1018', outline:'none' }
+  const lbl = { display:'block', fontSize:'12px', fontWeight:600, color:'#5a3540', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.5px' }
+
   return (
-    <div style={{ background:'#fff5f6', minHeight:'100vh', paddingBottom:'90px', fontFamily:'Inter, Arial, sans-serif' }}>
-      <header style={{ background:'var(--primary)', padding:'20px 16px' }}>
-        <h1 style={{ color:'white', fontSize:'18px', fontWeight:700 }}>My Profile</h1>
-      </header>
+    <div style={{ background:'#f7f2f3', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",sans-serif' }}>
 
-      <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'14px' }}>
-        {/* Avatar */}
-        <div style={{ background:'white', borderRadius:'12px', padding:'24px', boxShadow:'var(--shadow-sm)', textAlign:'center' }}>
-          <label style={{ cursor:'pointer' }}>
-            <div style={{ width:'80px', height:'80px', borderRadius:'50%', background:'var(--primary)', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'28px', fontWeight:700, marginBottom:'12px', overflow:'hidden', border:'3px solid var(--primary-muted)' }}>
-              {avatarPreview || profile?.avatar_url ? (
-                <img src={avatarPreview ?? profile.avatar_url} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              ) : initials}
+      {/* Header */}
+      <div style={{ background:'linear-gradient(160deg,#3d1018 0%,#7d2d3a 100%)', padding:'52px 20px 40px', textAlign:'center' }}>
+        <div style={{ width:'80px', height:'80px', borderRadius:'50%', background:'rgba(255,255,255,0.2)', border:'3px solid rgba(255,255,255,0.4)', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'28px', fontWeight:700, marginBottom:'12px' }}>
+          {initials}
+        </div>
+        <h1 style={{ color:'white', fontSize:'20px', fontWeight:700 }}>{profile?.full_name}</h1>
+        <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'13px', marginTop:'3px' }}>{profile?.email}</p>
+        <span style={{ display:'inline-block', marginTop:'8px', background:'rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.9)', padding:'4px 12px', borderRadius:'100px', fontSize:'11px', fontWeight:600, textTransform:'capitalize', border:'1px solid rgba(255,255,255,0.2)' }}>
+          {profile?.role} · {profile?.status}
+        </span>
+      </div>
+
+      <div style={{ padding:'16px 16px 100px' }}>
+
+        {/* Info rows */}
+        <p style={{ fontSize:'12px', fontWeight:600, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>My Information</p>
+        <div style={{ background:'white', borderRadius:'14px', overflow:'hidden', marginBottom:'14px', boxShadow:'0 1px 6px rgba(190,90,106,0.06)' }}>
+          {[
+            ['👤', 'Full Name', profile?.full_name],
+            ['📧', 'Email',     profile?.email],
+            ['📞', 'Phone',     profile?.phone ?? '—'],
+            ['📍', 'Address',   profile?.address ?? '—'],
+          ].map(([icon,label,value],i,arr) => (
+            <div key={label} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderBottom: i<arr.length-1?'0.5px solid rgba(0,0,0,0.06)':'none' }}>
+              <span style={{ fontSize:'18px', width:'28px', textAlign:'center' }}>{icon}</span>
+              <div style={{ flex:1 }}>
+                <p style={{ fontSize:'11px', color:'#aaa', marginBottom:'1px' }}>{label}</p>
+                <p style={{ fontSize:'14px', color:'#2d1018', fontWeight:500 }}>{value}</p>
+              </div>
             </div>
-            <div style={{ fontSize:'12px', color:'var(--primary)', fontWeight:600 }}>Tap to change photo</div>
-            <input type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
-              const f = e.target.files[0]
-              if (f) { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)) }
-            }} />
-          </label>
-          <div style={{ marginTop:'8px' }}>
-            <div style={{ fontSize:'16px', fontWeight:700, color:'#2d1018' }}>{profile?.full_name}</div>
-            <div style={{ fontSize:'12px', color:'#888' }}>{profile?.email}</div>
-            <span style={{ display:'inline-block', marginTop:'6px', background:'var(--primary-pale)', color:'var(--primary)', padding:'3px 10px', borderRadius:'100px', fontSize:'11px', fontWeight:600, textTransform:'capitalize' }}>
-              {profile?.role}
-            </span>
-          </div>
+          ))}
         </div>
 
-        {/* Edit profile */}
-        <div style={{ background:'white', borderRadius:'12px', padding:'20px', boxShadow:'var(--shadow-sm)' }}>
-          <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'16px', color:'#2d1018' }}>Edit Profile</h3>
-          <form onSubmit={handleSave}>
-            <div style={{ marginBottom:'14px' }}>
-              <label style={labelStyle}>Full Name</label>
-              <input style={inputStyle} value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} required />
-            </div>
-            <div style={{ marginBottom:'14px' }}>
-              <label style={labelStyle}>Email Address</label>
-              <input style={{ ...inputStyle, background:'#f5f5f5', color:'#888' }} value={profile?.email ?? ''} disabled />
-              <p style={{ fontSize:'11px', color:'#aaa', marginTop:'4px' }}>Email cannot be changed here.</p>
-            </div>
-            <div style={{ marginBottom:'14px' }}>
-              <label style={labelStyle}>Phone Number</label>
-              <input style={inputStyle} value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} placeholder="09XXXXXXXXX" />
-            </div>
-            <div style={{ marginBottom:'16px' }}>
-              <label style={labelStyle}>Address</label>
-              <input style={inputStyle} value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} placeholder="Barangay, City" />
-            </div>
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width:'100%', justifyContent:'center', padding:'12px', fontSize:'14px', fontWeight:700 }}>
-              {loading ? 'Saving…' : 'Save Changes'}
-            </button>
-          </form>
-        </div>
+        {/* Settings */}
+        <p style={{ fontSize:'12px', fontWeight:600, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>Settings</p>
+        <div style={{ background:'white', borderRadius:'14px', overflow:'hidden', marginBottom:'14px', boxShadow:'0 1px 6px rgba(190,90,106,0.06)' }}>
+          {[
+            { icon:'✏️', label:'Edit Profile',     action:()=>setSection(section==='edit'?null:'edit') },
+            { icon:'🔑', label:'Change Password',   action:()=>setSection(section==='password'?null:'password') },
+          ].map((item,i,arr) => (
+            <div key={item.label}>
+              <div onClick={item.action} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'15px 16px', borderBottom: i<arr.length-1?'0.5px solid rgba(0,0,0,0.06)':'none', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ fontSize:'18px', width:'28px', textAlign:'center' }}>{item.icon}</span>
+                <p style={{ flex:1, fontSize:'15px', color:'#2d1018' }}>{item.label}</p>
+                <span style={{ color:'#c7c7cc', fontSize:'16px' }}>{section===item.label.split(' ').join('').toLowerCase()?'∨':'›'}</span>
+              </div>
 
-        {/* Change password */}
-        <div style={{ background:'white', borderRadius:'12px', padding:'20px', boxShadow:'var(--shadow-sm)' }}>
-          <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'16px', color:'#2d1018' }}>Change Password</h3>
-          <form onSubmit={handlePasswordChange}>
-            <div style={{ marginBottom:'14px' }}>
-              <label style={labelStyle}>New Password</label>
-              <input type="password" style={inputStyle} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="At least 9 characters" required />
+              {/* Edit Profile inline */}
+              {item.label==='Edit Profile' && section==='edit' && (
+                <div style={{ padding:'14px 16px', borderBottom:'0.5px solid rgba(0,0,0,0.06)', background:'#fafafa' }}>
+                  <div style={{ marginBottom:'12px' }}><label style={lbl}>Full Name</label><input style={inp} value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} /></div>
+                  <div style={{ marginBottom:'12px' }}><label style={lbl}>Phone</label><input style={inp} value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} /></div>
+                  <div style={{ marginBottom:'14px' }}><label style={lbl}>Address</label><input style={inp} value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} /></div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                    <button onClick={()=>setSection(null)} style={{ padding:'12px', background:'#f2f2f7', color:'#333', border:'none', borderRadius:'10px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                    <button onClick={handleSave} disabled={loading} style={{ padding:'12px', background:'var(--primary)', color:'white', border:'none', borderRadius:'10px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                      {loading?'Saving…':'Save'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Change password inline */}
+              {item.label==='Change Password' && section==='password' && (
+                <div style={{ padding:'14px 16px', background:'#fafafa' }}>
+                  <div style={{ marginBottom:'12px' }}><label style={lbl}>New Password</label><input type="password" style={inp} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min 9 characters" /></div>
+                  <div style={{ marginBottom:'14px' }}><label style={lbl}>Confirm Password</label><input type="password" style={inp} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))} /></div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                    <button onClick={()=>setSection(null)} style={{ padding:'12px', background:'#f2f2f7', color:'#333', border:'none', borderRadius:'10px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                    <button onClick={handlePasswordChange} disabled={pwLoading} style={{ padding:'12px', background:'var(--primary)', color:'white', border:'none', borderRadius:'10px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                      {pwLoading?'Updating…':'Update'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div style={{ marginBottom:'16px' }}>
-              <label style={labelStyle}>Confirm New Password</label>
-              <input type="password" style={inputStyle} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))} required />
-            </div>
-            <button type="submit" disabled={pwLoading} className="btn btn-secondary" style={{ width:'100%', justifyContent:'center', padding:'12px', fontSize:'14px' }}>
-              {pwLoading ? 'Updating…' : 'Update Password'}
-            </button>
-          </form>
+          ))}
         </div>
 
         {/* Logout */}
-        <button onClick={handleLogout} className="btn btn-danger" style={{ width:'100%', justifyContent:'center', padding:'13px', fontSize:'14px', fontWeight:700 }}>
-          🚪 Logout
+        <button onClick={handleLogout} style={{ width:'100%', padding:'15px', background:'white', color:'#ff3b30', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:600, cursor:'pointer', boxShadow:'0 1px 6px rgba(190,90,106,0.06)' }}>
+          🚪 Sign Out
         </button>
       </div>
+
       <CustomerNav />
     </div>
   )

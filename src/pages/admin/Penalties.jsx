@@ -185,8 +185,8 @@ export default function AdminPenalties() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>Penalties ({displayed.length})</h3>
               <span style={{ fontSize:'12px', color:'#16a34a', fontWeight:600 }}>🟢 Live</span>
             </div>
@@ -239,14 +239,14 @@ export default function AdminPenalties() {
 
       {/* Add Modal */}
       {showAdd && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
           <div className="modal-box">
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Add Penalty</h3>
               <button onClick={()=>setShowAdd(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
             <form onSubmit={handleAdd}>
-              <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+              <div className="modal-body-admin" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
                 <div>
                   <label className="form-label">Customer *</label>
                   <select className="form-control" value={form.customer_id} onChange={e=>fetchCustomerLoans(e.target.value)} required>
@@ -275,7 +275,7 @@ export default function AdminPenalties() {
                   <input type="date" className="form-control" value={form.due_date} onChange={e=>setForm(f=>({...f,due_date:e.target.value}))} />
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary">Cancel</button>
                 <button type="submit" className="btn btn-danger">Add Penalty</button>
               </div>
@@ -286,14 +286,14 @@ export default function AdminPenalties() {
 
       {/* Edit Modal */}
       {showEdit && selected && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setShowEdit(false)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setShowEdit(false)}}>
           <div className="modal-box">
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Edit Penalty</h3>
               <button onClick={()=>setShowEdit(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
             <form onSubmit={handleEdit}>
-              <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+              <div className="modal-body-admin" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
                 <div style={{ background:'var(--primary-pale)', borderRadius:'8px', padding:'12px', fontSize:'13px' }}>
                   <strong>{selected.profiles?.full_name}</strong> — {selected.loans?.loan_applications?.app_id}
                 </div>
@@ -310,7 +310,7 @@ export default function AdminPenalties() {
                   <input type="date" className="form-control" value={form.due_date} onChange={e=>setForm(f=>({...f,due_date:e.target.value}))} />
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button type="button" onClick={()=>setShowEdit(false)} className="btn btn-secondary">Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>

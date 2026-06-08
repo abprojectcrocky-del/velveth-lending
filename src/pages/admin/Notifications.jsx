@@ -91,8 +91,8 @@ export default function AdminNotifications() {
         <div className="page-content">
           <div className="page-header"><h2>Notifications</h2><p>View all system and customer notifications</p></div>
 
-          <div className="card">
-            <div className="card-header"><h3>All Notifications ({notifs.length})</h3></div>
+          <div className="card-admin">
+            <div className="card-header-admin"><h3>All Notifications ({notifs.length})</h3></div>
             {loading ? (
               <div style={{ padding:'40px', textAlign:'center' }}><div className="spinner" style={{ margin:'0 auto' }}/></div>
             ) : notifs.length === 0 ? (
@@ -129,14 +129,14 @@ export default function AdminNotifications() {
 
       {/* Send Notification Modal */}
       {showSend && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setShowSend(false)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setShowSend(false)}}>
           <div className="modal-box">
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Send Notification</h3>
               <button onClick={()=>setShowSend(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
             <form onSubmit={handleSend}>
-              <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+              <div className="modal-body-admin" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
                 <div>
                   <label className="form-label">Send To</label>
                   <select className="form-control" value={form.user_id} onChange={e=>setForm(f=>({...f,user_id:e.target.value}))}>
@@ -162,7 +162,7 @@ export default function AdminNotifications() {
                   <textarea className="form-control" rows={4} value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} required placeholder="Write your message here…" />
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button type="button" onClick={()=>setShowSend(false)} className="btn btn-secondary">Cancel</button>
                 <button type="submit" disabled={sending} className="btn btn-primary">
                   {sending ? 'Sending…' : '📤 Send'}

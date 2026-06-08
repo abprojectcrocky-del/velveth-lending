@@ -142,8 +142,8 @@ export default function AdminPayments() {
             ))}
           </div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>Payments ({filtered.length})</h3>
               <div className="search-box" style={{ width:'240px' }}>
                 <span className="search-icon">🔍</span>
@@ -183,13 +183,13 @@ export default function AdminPayments() {
 
       {/* Review Modal */}
       {selected && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
           <div className="modal-box">
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Payment Details</h3>
               <button onClick={()=>setSelected(null)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body-admin">
               <div style={{ background:'var(--primary-pale)', borderRadius:'8px', padding:'14px', marginBottom:'16px', textAlign:'center' }}>
                 <div style={{ fontSize:'28px', fontWeight:800, color:'var(--primary)' }}>{fmt(selected.amount)}</div>
                 <div style={{ fontSize:'12px', color:'#888' }}>{selected.loans?.loan_applications?.app_id}</div>
@@ -209,7 +209,7 @@ export default function AdminPayments() {
                 </div>
               ))}
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer-admin">
               <button onClick={()=>setSelected(null)} className="btn btn-secondary">Cancel</button>
               {selected.status === 'pending' && (
                 <>

@@ -5,148 +5,125 @@ import CustomerNav from '../../components/CustomerNav'
 import { toast } from 'sonner'
 import { notifyAdminPaymentSubmitted } from '../../lib/gmail'
 
-const GCASH_NUMBER = '09307158807'
+const GCASH = '09307158807'
 
 export default function CustomerPayments() {
-  const { profile } = useAuth()
-  const [loan, setLoan]         = useState(null)
-  const [payments, setPayments] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [method, setMethod]     = useState('cash')
-  const [gcashRef, setGcashRef] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const { profile }  = useAuth()
+  const [loan,       setLoan]     = useState(null)
+  const [payments,   setPayments] = useState([])
+  const [loading,    setLoading]  = useState(true)
+  const [showModal,  setShowModal]= useState(false)
+  const [method,     setMethod]   = useState('cash')
+  const [gcashRef,   setGcashRef] = useState('')
+  const [submitting, setSubmitting]=useState(false)
 
   useEffect(() => { if (profile?.id) fetchData() }, [profile])
 
   async function fetchData() {
     setLoading(true)
     const uid = profile.id
-    const [loanRes, payRes] = await Promise.all([
-      supabase.from('loans').select('*, loan_applications(app_id)').eq('customer_id', uid).eq('status', 'active').limit(1).maybeSingle(),
-      supabase.from('payments').select('*').eq('customer_id', uid).order('payment_date', { ascending: false })
+    const [loanRes,payRes] = await Promise.all([
+      supabase.from('loans').select('*,loan_applications(app_id)').eq('customer_id',uid).eq('status','active').limit(1).maybeSingle(),
+      supabase.from('payments').select('*').eq('customer_id',uid).order('payment_date',{ascending:false})
     ])
     setLoan(loanRes.data)
-    setPayments(payRes.data ?? [])
+    setPayments(payRes.data??[])
     setLoading(false)
   }
 
   async function handlePayment() {
     if (!loan) return
-    if (method === 'gcash' && !gcashRef) { toast.error('Please enter your GCash Reference Number'); return }
+    if (method==='gcash'&&!gcashRef) { toast.error('Enter your GCash Reference Number'); return }
     setSubmitting(true)
     try {
       const { error } = await supabase.from('payments').insert({
-        loan_id: loan.id,
-        customer_id: profile.id,
-        amount: loan.monthly_payment,
-        payment_method: method,
-        payment_date: new Date().toISOString().split('T')[0],
-        status: method === 'cash' ? 'pending' : 'pending',
-        gcash_ref: gcashRef || null,
-        notes: method === 'cash' ? 'Customer submitted cash payment request' : `GCash ref: ${gcashRef}`
+        loan_id:loan.id, customer_id:profile.id,
+        amount:loan.monthly_payment, payment_method:method,
+        payment_date:new Date().toISOString().split('T')[0],
+        status:'pending', gcash_ref:gcashRef||null,
       })
-      if (error) { toast.error('Payment submission failed'); return }
-
-      // Notify admin — in-app + Gmail
-      const { data: admins } = await supabase.from('profiles').select('id,email').eq('role', 'admin').eq('status', 'active')
+      if (error) { toast.error('Submission failed'); return }
+      const { data:admins } = await supabase.from('profiles').select('id,email').eq('role','admin').eq('status','active')
       if (admins?.length) {
-        await supabase.from('notifications').insert(admins.map(a => ({
-          user_id: a.id,
-          title: `💳 Payment Request — ${profile.full_name}`,
-          message: `${profile.full_name} submitted a ${method} payment of ₱${Number(loan.monthly_payment).toLocaleString('en-PH',{minimumFractionDigits:2})} for loan ${loan.loan_applications?.app_id ?? ''}${gcashRef ? ` (GCash ref: ${gcashRef})` : ''}`,
-          type: 'info'
+        await supabase.from('notifications').insert(admins.map(a=>({
+          user_id:a.id, title:`💳 Payment — ${profile.full_name}`,
+          message:`${profile.full_name} submitted ${method} payment of ₱${Number(loan.monthly_payment).toLocaleString('en-PH',{minimumFractionDigits:2})}${gcashRef?` (Ref: ${gcashRef})`:''}`,
+          type:'info'
         })))
-        // Gmail to every admin
-        for (const admin of admins) {
-          if (admin.email) {
-            notifyAdminPaymentSubmitted(
-              admin.email,
-              profile.full_name,
-              loan.loan_applications?.app_id ?? '—',
-              loan.monthly_payment,
-              method,
-              gcashRef
-            )
-          }
-        }
+        for (const a of admins) if (a.email) notifyAdminPaymentSubmitted(a.email,profile.full_name,loan.loan_applications?.app_id??'—',loan.monthly_payment,method,gcashRef)
       }
-
       toast.success('Payment submitted! Admin will confirm shortly.')
-      setShowModal(false)
-      setGcashRef('')
-      fetchData()
+      setShowModal(false); setGcashRef(''); fetchData()
     } finally { setSubmitting(false) }
   }
 
-  const fmt = n => '₱' + Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })
-  const statusColor = s => ({ confirmed:'#16a34a', pending:'#d97706', failed:'#dc2626' }[s] ?? '#888')
+  const fmt = n => '₱'+Number(n??0).toLocaleString('en-PH',{minimumFractionDigits:2})
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—'
+  const statusColor = s => ({confirmed:'#16a34a',pending:'#d97706',failed:'#dc2626'}[s]??'#888')
+  const statusBg    = s => ({confirmed:'#f0fdf4',pending:'#fffbeb',failed:'#fff1f2'}[s]??'#f5f5f5')
 
   return (
-    <div style={{ background:'#fff5f6', minHeight:'100vh', paddingBottom:'90px', fontFamily:'Inter, Arial, sans-serif' }}>
-      <header style={{ background:'var(--primary)', padding:'20px 16px', display:'flex', alignItems:'center', gap:'12px' }}>
-        <h1 style={{ color:'white', fontSize:'18px', fontWeight:700 }}>Make Payment</h1>
-      </header>
+    <div style={{ background:'#f7f2f3', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",sans-serif' }}>
 
-      <div style={{ padding:'16px' }}>
-        {loading ? <div style={{ display:'flex', justifyContent:'center', padding:'40px' }}><div className="spinner"/></div> : (
+      {/* Header */}
+      <div style={{ background:'#3d1018', padding:'52px 20px 24px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <h1 style={{ color:'white', fontSize:'22px', fontWeight:700 }}>Payments</h1>
+            {loan && <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'13px', marginTop:'2px' }}>Due: {fmt(loan.monthly_payment)}</p>}
+          </div>
+          {loan && (
+            <button onClick={()=>setShowModal(true)} style={{ background:'white', color:'#3d1018', border:'none', padding:'9px 16px', borderRadius:'10px', fontSize:'14px', fontWeight:700, cursor:'pointer' }}>
+              + Pay
+            </button>
+          )}
+        </div>
+
+        {/* Summary strip */}
+        {loan && (
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginTop:'16px' }}>
+            {[
+              { label:'Total Paid',  value: fmt(payments.filter(p=>p.status==='confirmed').reduce((s,p)=>s+Number(p.amount),0)) },
+              { label:'Next Due',    value: loan.next_payment_date ? new Date(loan.next_payment_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '—' },
+              { label:'Amount Due',  value: fmt(loan.monthly_payment) },
+            ].map(s => (
+              <div key={s.label} style={{ background:'rgba(255,255,255,0.1)', borderRadius:'10px', padding:'10px', textAlign:'center' }}>
+                <p style={{ color:'white', fontSize:'13px', fontWeight:700 }}>{s.value}</p>
+                <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'10px', marginTop:'2px' }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding:'16px 16px 100px' }}>
+        {loading ? (
+          <div style={{ display:'flex', justifyContent:'center', padding:'60px' }}><div className="spinner"/></div>
+        ) : payments.length===0 ? (
+          <div style={{ background:'white', borderRadius:'16px', padding:'48px 20px', textAlign:'center' }}>
+            <div style={{ fontSize:'48px', marginBottom:'12px' }}>💳</div>
+            <p style={{ fontSize:'16px', fontWeight:600, color:'#333', marginBottom:'6px' }}>No transactions yet</p>
+            <p style={{ fontSize:'13px', color:'#aaa' }}>Your payment history will appear here.</p>
+          </div>
+        ) : (
           <>
-            {/* Payment History Summary */}
-            <div style={{ background:'var(--primary)', borderRadius:'12px', padding:'16px', marginBottom:'14px', color:'white' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'12px' }}>
-                <button onClick={() => setShowModal(true)} style={{ background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.4)', color:'white', padding:'8px 14px', borderRadius:'6px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
-                  + Make Payment
-                </button>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:'15px', fontWeight:700 }}>{fmt(payments.filter(p=>p.status==='confirmed').reduce((s,p)=>s+Number(p.amount),0))}</div>
-                  <div style={{ fontSize:'10px', opacity:0.7 }}>Total Paid</div>
+            <p style={{ fontSize:'12px', fontWeight:600, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>Transaction History</p>
+            <div style={{ background:'white', borderRadius:'14px', overflow:'hidden', boxShadow:'0 1px 6px rgba(190,90,106,0.06)' }}>
+              {payments.map((p,i) => (
+                <div key={p.id} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderBottom: i<payments.length-1?'0.5px solid rgba(0,0,0,0.06)':'none' }}>
+                  <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:statusBg(p.status), display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>
+                    {p.status==='confirmed'?'✅':p.status==='pending'?'⏳':'❌'}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <p style={{ fontSize:'14px', fontWeight:500, color:'#2d1018', textTransform:'capitalize' }}>{p.payment_method?.replace('_',' ')}</p>
+                    <p style={{ fontSize:'12px', color:'#aaa', marginTop:'1px' }}>{fmtDate(p.payment_date)}{p.gcash_ref?` · Ref: ${p.gcash_ref}`:''}</p>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <p style={{ fontSize:'15px', fontWeight:700, color:statusColor(p.status) }}>{fmt(p.amount)}</p>
+                    <p style={{ fontSize:'11px', color:statusColor(p.status), fontWeight:600, textTransform:'capitalize', marginTop:'2px' }}>{p.status}</p>
+                  </div>
                 </div>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:'15px', fontWeight:700, color:'#fbc5cc' }}>{loan?.next_payment_date ? new Date(loan.next_payment_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : 'N/A'}</div>
-                  <div style={{ fontSize:'10px', opacity:0.7 }}>Next Payment</div>
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:'15px', fontWeight:700, color:'#fbc5cc' }}>{fmt(loan?.monthly_payment)}</div>
-                  <div style={{ fontSize:'10px', opacity:0.7 }}>Amount Due</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Transaction History */}
-            <div style={{ background:'white', borderRadius:'12px', padding:'16px', boxShadow:'var(--shadow-sm)' }}>
-              <h3 style={{ fontSize:'15px', fontWeight:600, marginBottom:'14px' }}>Transaction History</h3>
-              {payments.length === 0 ? (
-                <p style={{ color:'#aaa', fontSize:'13px', textAlign:'center', padding:'20px 0' }}>No transactions yet</p>
-              ) : (
-                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
-                  <thead>
-                    <tr style={{ background:'#fff0f2' }}>
-                      <th style={{ padding:'10px 8px', textAlign:'left', color:'var(--primary)', fontWeight:600, fontSize:'10px', textTransform:'uppercase' }}>Loan ID</th>
-                      <th style={{ padding:'10px 8px', textAlign:'left', color:'var(--primary)', fontWeight:600, fontSize:'10px', textTransform:'uppercase' }}>Date</th>
-                      <th style={{ padding:'10px 8px', textAlign:'right', color:'var(--primary)', fontWeight:600, fontSize:'10px', textTransform:'uppercase' }}>Amount</th>
-                      <th style={{ padding:'10px 8px', textAlign:'left', color:'var(--primary)', fontWeight:600, fontSize:'10px', textTransform:'uppercase' }}>Method</th>
-                      <th style={{ padding:'10px 8px', textAlign:'center', color:'var(--primary)', fontWeight:600, fontSize:'10px', textTransform:'uppercase' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map(p => (
-                      <tr key={p.id} style={{ borderBottom:'1px solid #f0f0f0' }}>
-                        <td style={{ padding:'12px 8px', color:'var(--primary)', fontWeight:600 }}>{loan?.loan_applications?.app_id ?? '—'}</td>
-                        <td style={{ padding:'12px 8px', color:'#666' }}>{new Date(p.payment_date).toLocaleDateString('en-PH',{month:'2-digit',day:'2-digit',year:'numeric'})}</td>
-                        <td style={{ padding:'12px 8px', textAlign:'right', fontWeight:700, color:'var(--primary)' }}>{fmt(p.amount)}</td>
-                        <td style={{ padding:'12px 8px', color:'#666', textTransform:'capitalize' }}>{p.payment_method?.replace('_',' ')}</td>
-                        <td style={{ padding:'12px 8px', textAlign:'center' }}>
-                          <span style={{ background: p.status==='confirmed'?'#dcfce7':p.status==='pending'?'#fef3c7':'#fee2e2', color:statusColor(p.status), padding:'3px 8px', borderRadius:'100px', fontSize:'10px', fontWeight:600 }}>
-                            {p.status === 'confirmed' ? 'Completed' : p.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+              ))}
             </div>
           </>
         )}
@@ -154,78 +131,71 @@ export default function CustomerPayments() {
 
       {/* Payment Modal */}
       {showModal && loan && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(61,16,24,0.5)', zIndex:999, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }} onClick={e=>{if(e.target===e.currentTarget)setShowModal(false)}}>
-          <div style={{ background:'white', borderRadius:'16px', padding:'24px', width:'100%', maxWidth:'380px', boxShadow:'var(--shadow-lg)', maxHeight:'90vh', overflowY:'auto' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
-              <h3 style={{ fontSize:'18px', fontWeight:700 }}>Payment Details</h3>
-              <button onClick={()=>setShowModal(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#888' }}>✕</button>
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setShowModal(false)}}>
+          <div className="modal-sheet" style={{ maxWidth:'430px' }}>
+            <div className="modal-handle"/>
+            <div className="modal-header">
+              <h3>Make Payment</h3>
+              <button onClick={()=>setShowModal(false)} style={{ background:'#f2f2f7', border:'none', width:'30px', height:'30px', borderRadius:'50%', fontSize:'16px', cursor:'pointer', color:'#666' }}>✕</button>
             </div>
+            <div className="modal-body">
+              {/* Amount */}
+              <div style={{ background:'linear-gradient(135deg,var(--primary),var(--primary-dark))', borderRadius:'14px', padding:'20px', textAlign:'center', marginBottom:'20px' }}>
+                <p style={{ color:'rgba(255,255,255,0.7)', fontSize:'12px', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Amount to Pay</p>
+                <p style={{ color:'white', fontSize:'32px', fontWeight:800 }}>{fmt(loan.monthly_payment)}</p>
+                <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'12px', marginTop:'4px' }}>{loan.loan_applications?.app_id}</p>
+              </div>
 
-            <div style={{ background:'var(--primary-pale)', borderRadius:'8px', padding:'16px', textAlign:'center', marginBottom:'16px', border:'1px solid var(--primary-muted)' }}>
-              <div style={{ fontSize:'12px', color:'#888', marginBottom:'4px' }}>Amount to Pay</div>
-              <div style={{ fontSize:'28px', fontWeight:800, color:'var(--primary)' }}>{fmt(loan.monthly_payment)}</div>
-              <div style={{ fontSize:'12px', color:'#888', marginTop:'4px' }}>{loan.loan_applications?.app_id}</div>
-            </div>
-
-            {/* Payment method selector */}
-            <div style={{ marginBottom:'16px' }}>
-              <label style={{ display:'block', fontSize:'12px', fontWeight:600, color:'#666', marginBottom:'8px', textTransform:'uppercase' }}>Payment Method</label>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                {['cash','gcash','bank_transfer'].map(m => (
-                  <button key={m} onClick={()=>setMethod(m)} style={{
-                    padding:'10px', borderRadius:'8px', border:`2px solid ${method===m?'var(--primary)':'#e0e0e0'}`,
-                    background: method===m?'var(--primary-pale)':'white', fontSize:'11px', fontWeight:600,
-                    color: method===m?'var(--primary)':'#666', cursor:'pointer', textTransform:'capitalize'
+              {/* Method selector */}
+              <p style={{ fontSize:'12px', fontWeight:600, color:'#5a3540', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>Payment Method</p>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'18px' }}>
+                {[['cash','Cash','💵'],['gcash','GCash','📱'],['bank_transfer','Bank','🏦']].map(([val,label,icon])=>(
+                  <button key={val} onClick={()=>setMethod(val)} style={{
+                    padding:'12px 8px', borderRadius:'12px', border:`2px solid ${method===val?'var(--primary)':'#e8d5d8'}`,
+                    background: method===val?'var(--primary-pale)':'white',
+                    fontSize:'12px', fontWeight:600, color: method===val?'var(--primary)':'#666',
+                    cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:'4px'
                   }}>
-                    {m === 'gcash' ? 'GCash' : m === 'bank_transfer' ? 'Bank Transfer' : 'Cash'}
+                    <span style={{ fontSize:'20px' }}>{icon}</span>{label}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* GCash QR */}
-            {method === 'gcash' && (
-              <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:'8px', padding:'16px', marginBottom:'16px', textAlign:'center' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:'10px', justifyContent:'center', marginBottom:'10px' }}>
-                  <div style={{ background:'#0070BA', color:'white', fontWeight:700, fontSize:'14px', padding:'6px 12px', borderRadius:'6px' }}>G</div>
-                  <div style={{ textAlign:'left' }}>
-                    <div style={{ fontSize:'12px', color:'#666' }}>Send payment to:</div>
-                    <div style={{ fontWeight:700, fontSize:'14px' }}>GCash</div>
+              {/* GCash details */}
+              {method==='gcash' && (
+                <div style={{ background:'#eff6ff', borderRadius:'12px', padding:'14px', marginBottom:'16px' }}>
+                  <p style={{ fontSize:'13px', fontWeight:600, color:'#1d4ed8', marginBottom:'10px' }}>Send to GCash:</p>
+                  <div style={{ background:'white', borderRadius:'10px', padding:'12px 14px', display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px' }}>
+                    <div>
+                      <p style={{ fontSize:'11px', color:'#888' }}>GCash Number</p>
+                      <p style={{ fontSize:'17px', fontWeight:700, letterSpacing:'1px' }}>{GCASH}</p>
+                      <p style={{ fontSize:'11px', color:'#888' }}>Velveth Lending Co.</p>
+                    </div>
+                    <button onClick={()=>{navigator.clipboard.writeText(GCASH);toast.success('Copied!')}} style={{ background:'#eff6ff', border:'1px solid #bfdbfe', color:'#1d4ed8', padding:'7px 12px', borderRadius:'8px', fontSize:'12px', cursor:'pointer', fontWeight:600 }}>Copy</button>
                   </div>
-                </div>
-                <div style={{ background:'white', border:'1px solid #e0e0e0', borderRadius:'6px', padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
                   <div>
-                    <div style={{ fontSize:'11px', color:'#888' }}>GCash Number:</div>
-                    <div style={{ fontWeight:700, fontSize:'15px' }}>{GCASH_NUMBER}</div>
-                    <div style={{ fontSize:'11px', color:'#888' }}>Velveth Lending Co.</div>
+                    <label style={{ display:'block', fontSize:'12px', fontWeight:600, color:'#5a3540', marginBottom:'6px', textTransform:'uppercase' }}>GCash Reference # *</label>
+                    <input value={gcashRef} onChange={e=>setGcashRef(e.target.value)}
+                      style={{ width:'100%', padding:'12px 14px', background:'white', border:'1.5px solid #bfdbfe', borderRadius:'10px', fontSize:'14px', outline:'none' }}
+                      placeholder="Enter 13-digit reference number" />
+                    <p style={{ fontSize:'11px', color:'#888', marginTop:'4px' }}>Found in your GCash receipt</p>
                   </div>
-                  <button onClick={()=>{navigator.clipboard.writeText(GCASH_NUMBER); toast.success('Copied!')}} style={{ background:'none', border:'1px solid #ddd', borderRadius:'6px', padding:'6px 10px', cursor:'pointer', fontSize:'12px', color:'#666' }}>
-                    Copy
-                  </button>
                 </div>
-                <div>
-                  <label style={{ display:'block', fontSize:'12px', fontWeight:600, color:'#666', marginBottom:'6px', textAlign:'left' }}>Your GCash Number</label>
-                  <input style={{ width:'100%', padding:'10px', border:'1px solid #ddd', borderRadius:'6px', fontSize:'13px', marginBottom:'10px' }} placeholder="09X-XXX-XXXX" />
-                  <label style={{ display:'block', fontSize:'12px', fontWeight:600, color:'#666', marginBottom:'6px', textAlign:'left' }}>GCash Reference Number *</label>
-                  <input value={gcashRef} onChange={e=>setGcashRef(e.target.value)}
-                    style={{ width:'100%', padding:'10px', border:'1px solid #ddd', borderRadius:'6px', fontSize:'13px' }}
-                    placeholder="Enter 13-digit reference number" />
-                  <p style={{ fontSize:'11px', color:'#888', marginTop:'4px', textAlign:'left' }}>Found in your GCash transaction receipt</p>
+              )}
+
+              {method==='cash' && (
+                <div style={{ background:'#fffbeb', borderRadius:'12px', padding:'14px', marginBottom:'16px', fontSize:'13px', color:'#92400e', lineHeight:1.6 }}>
+                  💡 For cash payment, please visit our office. Admin will confirm upon receipt.
                 </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                <button onClick={()=>setShowModal(false)} style={{ padding:'14px', background:'#f2f2f7', border:'none', borderRadius:'12px', fontSize:'15px', fontWeight:600, color:'#333', cursor:'pointer' }}>Cancel</button>
+                <button onClick={handlePayment} disabled={submitting} style={{ padding:'14px', background:'var(--primary)', border:'none', borderRadius:'12px', fontSize:'15px', fontWeight:700, color:'white', cursor:'pointer', opacity:submitting?0.7:1 }}>
+                  {submitting?'Submitting…':'Submit'}
+                </button>
               </div>
-            )}
-
-            {method === 'cash' && (
-              <div style={{ background:'#fef3c7', border:'1px solid #fcd34d', borderRadius:'8px', padding:'12px', marginBottom:'16px', fontSize:'12px', color:'#92400e', lineHeight:1.6 }}>
-                💡 For cash payment, please visit our office. Date will be recorded by the admin upon receipt.
-              </div>
-            )}
-
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
-              <button onClick={()=>setShowModal(false)} className="btn btn-secondary" style={{ justifyContent:'center' }}>Back</button>
-              <button onClick={handlePayment} disabled={submitting} className="btn btn-primary" style={{ justifyContent:'center' }}>
-                {submitting ? 'Submitting…' : 'Submit Payment'}
-              </button>
             </div>
           </div>
         </div>

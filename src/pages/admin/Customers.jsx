@@ -149,8 +149,8 @@ export default function AdminCustomers() {
         <div className="page-content">
           <div className="page-header"><h2>Customer Management</h2><p>View, edit, and manage all customers — click any row to open full profile</p></div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>All Customers ({filtered.length})</h3>
               <div className="search-box" style={{ width:'260px' }}>
                 <span className="search-icon">🔍</span>

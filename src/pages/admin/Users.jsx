@@ -58,8 +58,8 @@ export default function AdminUsers() {
         </header>
         <div className="page-content">
           <div className="page-header"><h2>Users</h2><p>Manage all admin and customer accounts</p></div>
-          <div className="card">
-            <div className="card-header"><h3>All Users ({users.length})</h3></div>
+          <div className="card-admin">
+            <div className="card-header-admin"><h3>All Users ({users.length})</h3></div>
             <div className="table-container">
               {loading ? <div style={{ padding:'40px', textAlign:'center' }}><div className="spinner" style={{ margin:'0 auto' }}/></div> : (
                 <table>
@@ -88,14 +88,14 @@ export default function AdminUsers() {
       </div>
 
       {showAdd && (
-        <div className="modal-overlay open" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
+        <div className="modal-overlay-admin open" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
           <div className="modal-box">
-            <div className="modal-header">
+            <div className="modal-header-admin">
               <h3>Create New User</h3>
               <button onClick={()=>setShowAdd(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#888' }}>✕</button>
             </div>
             <form onSubmit={handleCreate}>
-              <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+              <div className="modal-body-admin" style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
                 <div><label className="form-label">Full Name</label><input className="form-control" value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} required /></div>
                 <div><label className="form-label">Email</label><input type="email" className="form-control" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} required /></div>
                 <div><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} /></div>
@@ -108,7 +108,7 @@ export default function AdminUsers() {
                 </div>
                 <div><label className="form-label">Password (min 9 chars)</label><input type="password" className="form-control" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} required minLength={9} /></div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer-admin">
                 <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary">Cancel</button>
                 <button type="submit" disabled={submitting} className="btn btn-primary">{submitting ? 'Creating…' : 'Create User'}</button>
               </div>

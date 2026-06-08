@@ -95,8 +95,8 @@ export default function AdminDashboard() {
               {/* Two column */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px', marginBottom:'20px' }}>
                 {/* Pending Applications */}
-                <div className="card">
-                  <div className="card-header">
+                <div className="card-admin">
+                  <div className="card-header-admin">
                     <h3>Pending Loan Applications {stats.pendingApps > 0 && <span style={{ background:'var(--primary)', color:'white', fontSize:'11px', padding:'2px 8px', borderRadius:'100px', marginLeft:'6px' }}>{stats.pendingApps}</span>}</h3>
                     <Link to="/admin/loans" className="btn btn-sm btn-secondary">View All</Link>
                   </div>
@@ -120,8 +120,8 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Recent Payments */}
-                <div className="card">
-                  <div className="card-header">
+                <div className="card-admin">
+                  <div className="card-header-admin">
                     <h3>Recent Payments</h3>
                     <Link to="/admin/payments" className="btn btn-sm btn-secondary">View All</Link>
                   </div>
@@ -146,8 +146,8 @@ export default function AdminDashboard() {
               </div>
 
               {/* Recent Customers */}
-              <div className="card">
-                <div className="card-header">
+              <div className="card-admin">
+                <div className="card-header-admin">
                   <h3>Recently Registered Customers</h3>
                   <Link to="/admin/customers" className="btn btn-sm btn-primary">View All Customers</Link>
                 </div>

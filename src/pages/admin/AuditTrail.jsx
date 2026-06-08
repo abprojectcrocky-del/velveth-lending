@@ -68,8 +68,8 @@ export default function AdminAuditTrail() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
+          <div className="card-admin">
+            <div className="card-header-admin">
               <h3>Activity Logs ({filtered.length})</h3>
               <div style={{ fontSize:'12px', color:'#888' }}>Showing last 200 entries</div>
             </div>
